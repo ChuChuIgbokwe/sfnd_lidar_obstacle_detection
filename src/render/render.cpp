@@ -21,6 +21,7 @@ void renderHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
 }
 
 int countRays = 0;
+/*This displays lidar arrays on the pcl viewer*/
 void renderRays(pcl::visualization::PCLVisualizer::Ptr& viewer, const Vect3& origin, const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
 {
 
