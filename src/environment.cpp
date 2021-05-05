@@ -1,5 +1,5 @@
 /* \author Aaron Brown */
-// Create simple 3d highway enviroment using PCL
+// Create simple 3d highway environment using PCL
 // for exploring self-driving car sensors
 
 #include "sensors/lidar.h"
@@ -35,30 +35,35 @@ std::vector<Car> initHighway(bool renderScene, pcl::visualization::PCLVisualizer
 }
 
 
-void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
-{
+void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer) {
     // ----------------------------------------------------
     // -----Open 3D viewer and display simple highway -----
     // ----------------------------------------------------
-    
+
     // RENDER OPTIONS
     bool renderScene = false; // This renders the scene: road, cars, etc
     std::vector<Car> cars = initHighway(renderScene, viewer);
-    
-    // TODO:: Create lidar sensor
+
+    //Create lidar sensor
     Lidar *lidar = new Lidar(cars, 0);
     //Generate an input cloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud = lidar->scan();
     //This allows us to observe the rays in the simulator
-//    renderRays(viewer, lidar->position , inputCloud);
+    //renderRays(viewer, lidar->position , inputCloud);
     // This allows us to view the point cloud created by the lidar
-    renderPointCloud(viewer, inputCloud, "inputCloud", Color(1,1,1));
+    //renderPointCloud(viewer, inputCloud, "inputCloud", Color(1, 1, 1));
 
-    // TODO:: Create point processor
-    ProcessPointClouds<pcl::PointXYZ> pointProcessor;
+    //Create point processor
+    //ProcessPointClouds<pcl::PointXYZ> pointProcessor; //stack
+    ProcessPointClouds<pcl::PointXYZ> *pointProcessor = new ProcessPointClouds<pcl::PointXYZ>(); //heap
+    std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> segmentCloud =
+            pointProcessor->SegmentPlane(inputCloud, 100, 0.2);
+
+    // Render point cloud segments in different colours
+    renderPointCloud(viewer, segmentCloud.first, "obstacleCloud", Color(1, 0, 0));
+    renderPointCloud(viewer, segmentCloud.second, "roadCloud", Color(0, 1, 0));
+
 }
-
-
 //setAngle: SWITCH CAMERA ANGLE {XY, TopDown, Side, FPS}
 void initCamera(CameraAngle setAngle, pcl::visualization::PCLVisualizer::Ptr& viewer)
 {
@@ -85,7 +90,7 @@ void initCamera(CameraAngle setAngle, pcl::visualization::PCLVisualizer::Ptr& vi
 
 int main (int argc, char** argv)
 {
-    std::cout << "starting enviroment" << std::endl;
+    std::cout << "starting environment" << std::endl;
 
     pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     CameraAngle setAngle = XY;
