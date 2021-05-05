@@ -44,8 +44,7 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 ProcessPointClouds<PointT>::SeparateClouds(pcl::PointIndices::Ptr inliers,
                                            typename pcl::PointCloud<PointT>::Ptr cloud) {
 
-    // TODO: Create two new point clouds, one cloud with obstacles and other with segmented plane
-
+    //Create two new point clouds, one cloud with obstacles and other with segmented plane
     pcl::PointCloud<pcl::PointXYZ>::Ptr obstacleCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr roadCloud(new pcl::PointCloud<pcl::PointXYZ>);
     // populate the roadCloud pointcloud with the inliers
@@ -57,14 +56,15 @@ ProcessPointClouds<PointT>::SeparateClouds(pcl::PointIndices::Ptr inliers,
     // Extract the inliers
     extract.setInputCloud(cloud);
     extract.setIndices(inliers);
-    extract.setNegative(true); //inverted behaviour which allows the inliers to be removed
+    // inverted behaviour.  Removes points outside the range of the argument of extract.setIndices()
+    extract.setNegative(true);
     extract.filter(*obstacleCloud); // all the outliers are assigned to the obstacle cloud
 
-    std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult(obstacleCloud,
-                                                                                                      roadCloud);
-    return segResult;
-}
+    std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segmentationResult
+    (obstacleCloud, roadCloud);
 
+    return segmentationResult;
+}
 
 template<typename PointT>
 std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr>
@@ -73,10 +73,11 @@ ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr c
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
 
-    // TODO:: Fill in this function to find inliers for the cloud and to segment the cloud into the driveable plane and
-    // obstacles
+    /* Fill in this function to find inliers for the cloud and to segment the cloud into the driveable plane and
+    obstacles */
 
     pcl::SACSegmentation<pcl::PointXYZ> seg;  // Create the segmentation object
+    //inliers have  header and a vector. The vector contains the indices of the of the inlier points  in the pointcloud
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
     // Optional
@@ -86,10 +87,10 @@ ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr c
     seg.setMethodType(pcl::SAC_RANSAC);
     seg.setMaxIterations(maxIterations);
     seg.setDistanceThreshold(distanceThreshold);
-    // Segment the largest planar component from th input cloud
+    // Segment the largest planar component from the input cloud
     seg.setInputCloud(cloud);
     seg.segment(*inliers, *coefficients);
-
+    // Check if inliers vector is empty
     if (inliers->indices.size() == 0) {
         PCL_ERROR ("Could not estimate a planar model for the given dataset.");
     }
