@@ -98,14 +98,28 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr &viewer) {
     // Experiment with the ? values and find what works best
     pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud;
     filterCloud = pointProcessorI->FilterCloud(inputCloud, 0.2,
-                                               Eigen::Vector4f(-30, -5, -2, 1),
-                                               Eigen::Vector4f(30, 7, .4, 1));
+                                               Eigen::Vector4f(-20, -5, -4, 1),
+                                               Eigen::Vector4f(20, 5, 0.1, 1));
 
     std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> segmentCloud = pointProcessorI->SegmentPlaneRANSAC(
             filterCloud, 100, 0.2);
 //    renderPointCloud(viewer, filterCloud, "filterCloud");
     renderPointCloud(viewer, segmentCloud.first, "obstacleCloud", Color(1, 0, 0));
     renderPointCloud(viewer, segmentCloud.second, "roadCloud", Color(0, 1, 0));
+    // cluster the outliers/obstacles from the segmented point cloud
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->Clustering(
+            segmentCloud.first, 1.0, 3, 30);
+
+    int clusterId = 0;
+    std::vector<Color> colors = {Color(1, 0, 0), Color(1, 1, 0), Color(0, 0, 1)};
+    for (pcl::PointCloud<pcl::PointXYZI>::Ptr cluster : cloudClusters) {
+            std::cout << "cluster size ";
+            pointProcessorI->numPoints(cluster);
+            renderPointCloud(viewer, cluster, "obstCloud" + std::to_string(clusterId), colors[clusterId]);
+            Box box = pointProcessorI->BoundingBox(cluster);
+            renderBox(viewer, box, clusterId);
+            ++clusterId;
+    }
 
 
 }
