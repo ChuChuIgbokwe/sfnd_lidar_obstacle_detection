@@ -7,9 +7,12 @@
 #include <string>
 #include "kdtree.h"
 
-// Arguments:
-// window is the region to draw box around
-// increase zoom to see more of the area
+/**
+ * @brief
+ * @param window: window is the region to draw box around
+ * @param zoom: increase zoom to see more of the area
+ * @return
+ */
 pcl::visualization::PCLVisualizer::Ptr initScene(Box window, int zoom) {
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("2D Viewer"));
     viewer->setBackgroundColor(0, 0, 0);
@@ -21,6 +24,11 @@ pcl::visualization::PCLVisualizer::Ptr initScene(Box window, int zoom) {
     return viewer;
 }
 
+/**
+ * @brief
+ * @param points
+ * @return
+ */
 pcl::PointCloud<pcl::PointXYZ>::Ptr CreateData(std::vector<std::vector<float>> points) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
 
@@ -40,7 +48,14 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr CreateData(std::vector<std::vector<float>> p
 
 }
 
-
+/**
+ * @brief
+ * @param node
+ * @param viewer
+ * @param window
+ * @param iteration
+ * @param depth
+ */
 void
 render2DTree(Node *node, pcl::visualization::PCLVisualizer::Ptr &viewer, Box window, int &iteration, uint depth = 0) {
 
@@ -72,10 +87,18 @@ render2DTree(Node *node, pcl::visualization::PCLVisualizer::Ptr &viewer, Box win
     }
 
 }
-
+/**
+ * @brief This is a helper function that recursively checks if points in the kd tree belong to the same cluster
+ * @param index: index of points in the processed vector
+ * @param points: points in the kd tree
+ * @param cluster: A vector that keeps track of indices of processed points
+ * @param processed: a vector that keeps track of which point has been processed
+ * @param tree:  Kd Tree object
+ * @param distanceTol: distance limit for classifying points as part of the same cluster
+ */
 void
-clusterHelper(int index, const std::vector<std::vector<float>> points , std::vector<int>& cluster,
-              std::vector<bool>& processed, KdTree *tree, float distanceTol)
+proximity(int index, const std::vector<std::vector<float>> points , std::vector<int>& cluster,
+          std::vector<bool>& processed, KdTree *tree, float distanceTol)
 {
     processed[index] = true;
     cluster.push_back(index);
@@ -85,15 +108,21 @@ clusterHelper(int index, const std::vector<std::vector<float>> points , std::vec
     for( auto id: nearestPointId)
     {
         if (!processed[id]){
-            clusterHelper(id, points, cluster, processed, tree, distanceTol);
+            proximity(id, points, cluster, processed, tree, distanceTol);
         }
     }
 }
 
+/**
+ * @brief: a function return list of indices for each cluster
+ * @param points: points in the kd tree
+ * @param tree: kdtree object
+ * @param distanceTol:  distance limit for classifying points as part of the same cluster
+ * @return vector of ints
+ */
 std::vector<std::vector<int>>
 euclideanCluster(const std::vector<std::vector<float>> &points, KdTree *tree, float distanceTol) {
 
-    // TODO: Fill out this function to return list of indices for each cluster
     std::vector<std::vector<int>> clusters;
     std::vector<bool> processed(points.size(), false);
     int i = 0;
@@ -106,7 +135,7 @@ euclideanCluster(const std::vector<std::vector<float>> &points, KdTree *tree, fl
         }
         // If point has not been processed Create cluster
         std::vector<int> cluster;
-        clusterHelper(i, points, cluster, processed, tree, distanceTol);
+        proximity(i, points, cluster, processed, tree, distanceTol);
         clusters.push_back(cluster);
         i++;
     }

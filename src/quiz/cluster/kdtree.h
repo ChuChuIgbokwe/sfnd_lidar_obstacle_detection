@@ -3,8 +3,9 @@
 
 #include "../../render/render.h"
 
-
-// Structure to represent node of kd tree
+/**
+ * @brief: Structure to represent node of kd tree
+ */
 struct Node {
     std::vector<float> point;
     int id;
@@ -14,18 +15,26 @@ struct Node {
     Node(std::vector<float> arr, int setId)
             : point(arr), id(setId), left(NULL), right(NULL) {}
 };
-
+/**
+ * @brief A kd tree initialized with a null root
+ */
 struct KdTree {
     Node *root;
 
     KdTree()
             : root(NULL) {}
-
+    /**
+     * @brief This function is a helper function that recursively inserts points into the 2D kd tree
+     * @param depth: depth of the tree. Used to determine whether to compare x or y coordinates before insertion
+     * @param point: vector containing the x and y coordinates of point being inserted
+     * @param id: id of the point being inserted
+     */
     void insertHelper(Node *&node, uint depth, std::vector<float> point, int id) {
         //Check if tree is empty
         if (node == NULL) {
             node = new Node(point, id);
-        } else {
+        }
+        else {
             uint currentDepth = depth % 2;
             if (point[currentDepth] < (node->point[currentDepth])) {
                 insertHelper(node->left, depth + 1, point, id);
@@ -35,12 +44,23 @@ struct KdTree {
         }
     }
 
+    /**
+     * @brief this function inserts a new point into the tree. It creates a new node and place correctly with in the root
+     * @param point: point being inserted into the tree
+     * @param id: point id
+     */
     void insert(std::vector<float> point, int id) {
-        // Fill in this function to insert a new point into the tree
-        // the function should create a new node and place correctly with in the root
         insertHelper(*&root, 0, point, id);
     }
 
+    /**
+     * @brief This function is a helper function that recursively search for a point in the 2D kd tree
+     * @param target: point being searched for
+     * @param node: node object to be se
+     * @param depth: depth of the tree. Used to determine whether to compare x or y coordinates before insertion
+     * @param distanceTol: Distance tolerance b
+     * @param ids: point id's
+     */
     void searchHelper(std::vector<float> target, Node *node, int depth, float distanceTol, std::vector<int> &ids) {
         if (node != NULL) {
             // First check if a point is within the distance tolerance +/- range
@@ -64,15 +84,18 @@ struct KdTree {
         }
     }
 
-    // return a list of point ids in the tree that are within distance of target
+    /**
+     * @brief: This function returns a list of point ids in the tree that are within distance of target
+     * @param target
+     * @param distanceTol
+     * @return
+     */
     std::vector<int> search(std::vector<float> target, float distanceTol) {
 
         std::vector<int> ids;
         searchHelper(target, root, 0, distanceTol, ids);
         return ids;
     }
-
-
 };
 
 
