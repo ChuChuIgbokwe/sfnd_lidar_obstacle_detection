@@ -364,3 +364,62 @@ std::vector<boost::filesystem::path> ProcessPointClouds<PointT>::streamPcd(std::
     return paths;
 
 }
+
+
+/**
+ * @brief This is a helper function that recursively checks if points in the kd tree belong to the same cluster
+ * @param index: index of points in the processed vector
+ * @param points: points in the kd tree
+ * @param cluster: A vector that keeps track of indices of processed points
+ * @param processed: a vector that keeps track of which point has been processed
+ * @param tree:  Kd Tree object
+ * @param distanceTol: distance limit for classifying points as part of the same cluster
+ */
+template<typename PointT>
+void
+ProcessPointClouds<PointT>::proximity(int index, typename pcl::PointCloud<PointT>::Ptr cloud, std::vector<int>& cluster,
+          std::vector<bool>& processed, KdTree *tree, float distanceTol)
+{
+    processed[index] = true;
+    cluster.push_back(index);
+
+    std::vector<int> nearestPointId = tree->search(cloud->points[index], distanceTol);
+
+    for( auto id: nearestPointId)
+    {
+        if (!processed[id]){
+            proximity(id, cloud, cluster, processed, tree, distanceTol);
+        }
+    }
+}
+
+/**
+ * @brief: a function return list of indices for each cluster
+ * @param points: points in the kd tree
+ * @param tree: kdtree object
+ * @param distanceTol:  distance limit for classifying points as part of the same cluster
+ * @return vector of ints
+ */
+template<typename PointT>
+std::vector<std::vector<int>>
+ProcessPointClouds<PointT>::euclideanCluster(typename pcl::PointCloud<PointT>::Ptr cloud, KdTree *tree, float distanceTol) {
+
+    std::vector<std::vector<int>> clusters;
+    std::vector<bool> processed(cloud->points.size(), false);
+    int i = 0;
+    while(i < cloud->points.size())
+    {
+        if (processed[i])
+        {
+            i++;
+            continue;
+        }
+        // If point has not been processed Create cluster
+        std::vector<int> cluster;
+        proximity(i, cloud, cluster, processed, tree, distanceTol);
+        clusters.push_back(cluster);
+        i++;
+    }
+    return clusters;
+
+}
