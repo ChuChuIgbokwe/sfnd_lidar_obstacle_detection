@@ -31,9 +31,11 @@ struct Node {
     Node(std::vector<float> arr, int setId)
             : point(arr), id(setId), left(NULL), right(NULL) {}
 };
+
 /**
  * @brief A kd tree initialized with a null root
  */
+template<typename PointT>
 struct KdTree {
     Node *root;
 
@@ -144,8 +146,9 @@ public:
     std::vector<boost::filesystem::path> streamPcd(std::string dataPath);
 
     void proximity(int index, typename pcl::PointCloud<PointT>::Ptr cloud, std::vector<int>& cluster,
-              std::vector<bool>& processed, KdTree *tree, float distanceTol);
+              std::vector<bool>& processed, typename KdTree<PointT>::KdTree* tree, float distanceTol);
 
-    std::vector<std::vector<int>>euclideanCluster(typename pcl::PointCloud<PointT>::Ptr cloud, KdTree *tree, float distanceTol);
+    std::vector<std::vector<int>>euclideanCluster(typename pcl::PointCloud<PointT>::Ptr cloud, typename
+    KdTree<PointT>::KdTree* tree, float distanceTol);
 };
 #endif /* PROCESSPOINTCLOUDS_H_ */
