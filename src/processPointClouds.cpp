@@ -19,7 +19,16 @@ void ProcessPointClouds<PointT>::numPoints(typename pcl::PointCloud<PointT>::Ptr
     std::cout << cloud->points.size() << std::endl;
 }
 
-
+/**
+ * @brief This function filters a pointcloud using a voxel grid. Afterwhich the lidar points on the roof of the car
+ * are extracted and removed
+ * @tparam PointT
+ * @param cloud: cloud to be filtered
+ * @param filterRes
+ * @param minPoint: describes min point of region of interest
+ * @param maxPoint: describes max point of region of interest
+ * @return filtered/downsampled point cloud
+ */
 template<typename PointT>
 typename pcl::PointCloud<PointT>::Ptr
 ProcessPointClouds<PointT>::FilterCloud(typename pcl::PointCloud<PointT>::Ptr cloud, float filterRes,
@@ -50,12 +59,31 @@ ProcessPointClouds<PointT>::FilterCloud(typename pcl::PointCloud<PointT>::Ptr cl
     regionOfInterest.setInputCloud(filteredCloud);
     regionOfInterest.filter(*cloudROI); // save results to cloudROI
 
+    // remove the point cloud roof points (where lidar hits the roof of the car) from the cloud ROI
+    std::vector<int> indices;
+    pcl::CropBox<PointT> roof(true);
+    roof.setMin(Eigen::Vector4f(-1.5, -1.7, -1, 1));
+    roof.setMax(Eigen::Vector4f(2.6, 1.7, -0.4, 1));
+    roof.setInputCloud(cloudROI);
+    roof.filter(indices); // get the indices of the cloud points that fit within the roof box
+
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+    for (auto point: indices) {
+        inliers->indices.push_back(point);
+    }
+
+    pcl::ExtractIndices<PointT> extract;
+    // Extract the inliers
+    extract.setInputCloud(cloudROI);
+    extract.setIndices(inliers);
+    extract.setNegative(true); // Removes points outside the range of the argument of extract.setIndices()
+    extract.filter(*cloudROI); // all the outliers are assigned to the obstacle cloud
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "filtering took " << elapsedTime.count() << " milliseconds" << std::endl;
 
-    return cloud;
+    return cloudROI;
 
 }
 
@@ -82,7 +110,7 @@ ProcessPointClouds<PointT>::SeparateClouds(pcl::PointIndices::Ptr inliers,
     extract.filter(*obstacleCloud); // all the outliers are assigned to the obstacle cloud
 
     std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segmentationResult
-    (obstacleCloud, roadCloud);
+            (obstacleCloud, roadCloud);
 
     return segmentationResult;
 }
@@ -124,7 +152,14 @@ ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr c
             inliers, cloud);
     return segResult;
 }
-
+/**
+ * @brief
+ * @tparam PointT
+ * @param cloud
+ * @param maxIterations
+ * @param distanceThreshold
+ * @return
+ */
 template<typename PointT>
 std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr>
 ProcessPointClouds<PointT>::SegmentPlaneRANSAC(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations,
@@ -135,9 +170,8 @@ ProcessPointClouds<PointT>::SegmentPlaneRANSAC(typename pcl::PointCloud<PointT>:
     srand(time(NULL));
     while (maxIterations--) {
         // Randomly sample subset and fit line
-        // This ensures that the three points picked are unique
-        std::unordered_set<int> inliers;
-        while (inliers.size() <3){
+        std::unordered_set<int> inliers; // This ensures that the three points picked are unique
+        while (inliers.size() < 3) {
             inliers.insert(rand() % cloud->points.size());
         }
 
@@ -189,42 +223,42 @@ ProcessPointClouds<PointT>::SegmentPlaneRANSAC(typename pcl::PointCloud<PointT>:
         c = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1);
         d = -1 * (a * x1 + b * y1 + c * z1);
 
-        for (auto index = 0; index < cloud->points.size(); index++){
-            if(inliers.count(index) > 0){ //if point chosen is already on the line, don't do anything
+        for (auto index = 0; index < cloud->points.size(); index++) {
+            if (inliers.count(index) > 0) { //if point chosen is already on the line, don't do anything
                 continue;
             }
-            pcl::PointXYZ point = cloud->points[index];
+            PointT point = cloud->points[index];
             float x4 = point.x;
             float y4 = point.y;
             float z4 = point.z;
             // Measure distance between every point and fitted line
-            float distance = fabs(a * x4 + b * y4 + c * z4 + d) / sqrt(a*a + b*b + c*c);
+            float distance = fabs(a * x4 + b * y4 + c * z4 + d) / sqrt(a * a + b * b + c * c);
             // If distance is smaller than threshold count it as inlier
-            if (distance < distanceThreshold){
+            if (distance < distanceThreshold) {
                 inliers.insert(index);
             }
         }
         // Return indices of inliers from fitted line with most inliers
-        if (inliers.size() > inliersResult.size()){
+        if (inliers.size() > inliersResult.size()) {
             inliersResult = inliers;
         }
     }
-    if (inliersResult.size () == 0){
+    if (inliersResult.size() == 0) {
         std::cerr << "No inliers found." << std::endl;
     }
-    typename pcl::PointCloud<pcl::PointXYZ>::Ptr  cloudInliers(new pcl::PointCloud<pcl::PointXYZ>());
-    typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloudOutliers(new pcl::PointCloud<pcl::PointXYZ>());
+    typename pcl::PointCloud<PointT>::Ptr cloudInliers(new pcl::PointCloud<PointT>());
+    typename pcl::PointCloud<PointT>::Ptr cloudOutliers(new pcl::PointCloud<PointT>());
 
-    for(int index = 0; index < cloud->points.size(); index++){
-        pcl::PointXYZ point = cloud->points[index];
-        if(inliersResult.count(index))
+    for (int index = 0; index < cloud->points.size(); index++) {
+        PointT point = cloud->points[index];
+        if (inliersResult.count(index))
             cloudInliers->points.push_back(point);
         else
             cloudOutliers->points.push_back(point);
     }
 
     std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult(cloudOutliers,
-            cloudInliers);
+                                                                                                      cloudInliers);
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "RANSAC plane segmentation took " << elapsedTime.count() << " milliseconds" << std::endl;
@@ -243,22 +277,22 @@ ProcessPointClouds<PointT>::Clustering(typename pcl::PointCloud<PointT>::Ptr clo
 
     // Fill in the function to perform euclidean clustering to group detected obstacles
     // Creating the KdTree object for the search method of the extraction
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
-    tree->setInputCloud (cloud);
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+    tree->setInputCloud(cloud);
 
     std::vector<pcl::PointIndices> clusterIndices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance (clusterTolerance);
-    ec.setMinClusterSize (minSize);
-    ec.setMaxClusterSize (maxSize);
-    ec.setSearchMethod (tree);
-    ec.setInputCloud (cloud);
-    ec.extract (clusterIndices);
+    ec.setClusterTolerance(clusterTolerance);
+    ec.setMinClusterSize(minSize);
+    ec.setMaxClusterSize(maxSize);
+    ec.setSearchMethod(tree);
+    ec.setInputCloud(cloud);
+    ec.extract(clusterIndices);
 
     // Loop through point cloud clusters and add them to the clusters vector
-    for (pcl::PointIndices getIndices: clusterIndices){
-        typename pcl::PointCloud<PointT>::Ptr cloudCluster (new pcl::PointCloud<PointT>);
-        for (int index: getIndices.indices){
+    for (pcl::PointIndices getIndices: clusterIndices) {
+        typename pcl::PointCloud<PointT>::Ptr cloudCluster(new pcl::PointCloud<PointT>);
+        for (int index: getIndices.indices) {
             cloudCluster->points.push_back(cloud->points[index]);
         }
         cloudCluster->width = cloudCluster->size();
