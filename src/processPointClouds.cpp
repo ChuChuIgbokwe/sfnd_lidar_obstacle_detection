@@ -277,11 +277,11 @@ ProcessPointClouds<PointT>::Clustering(typename pcl::PointCloud<PointT>::Ptr clo
 
     // Fill in the function to perform euclidean clustering to group detected obstacles
     // Creating the KdTree object for the search method of the extraction
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+    typename pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>);
     tree->setInputCloud(cloud);
 
     std::vector<pcl::PointIndices> clusterIndices;
-    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    pcl::EuclideanClusterExtraction<PointT> ec;
     ec.setClusterTolerance(clusterTolerance);
     ec.setMinClusterSize(minSize);
     ec.setMaxClusterSize(maxSize);
@@ -378,7 +378,7 @@ std::vector<boost::filesystem::path> ProcessPointClouds<PointT>::streamPcd(std::
 template<typename PointT>
 void
 ProcessPointClouds<PointT>::proximity(int index, typename pcl::PointCloud<PointT>::Ptr cloud, std::vector<int>& cluster,
-          std::vector<bool>& processed, KdTree *tree, float distanceTol)
+          std::vector<bool>& processed, typename KdTree<PointT>::KdTree* tree, float distanceTol)
 {
     processed[index] = true;
     cluster.push_back(index);
@@ -402,7 +402,8 @@ ProcessPointClouds<PointT>::proximity(int index, typename pcl::PointCloud<PointT
  */
 template<typename PointT>
 std::vector<std::vector<int>>
-ProcessPointClouds<PointT>::euclideanCluster(typename pcl::PointCloud<PointT>::Ptr cloud, KdTree *tree, float distanceTol) {
+ProcessPointClouds<PointT>::euclideanCluster(typename pcl::PointCloud<PointT>::Ptr cloud,
+                                             typename KdTree<PointT>::KdTree* tree, float distanceTol) {
 
     std::vector<std::vector<int>> clusters;
     std::vector<bool> processed(cloud->points.size(), false);
