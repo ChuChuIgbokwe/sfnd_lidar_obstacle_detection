@@ -59,7 +59,7 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr &viewer) {
     //ProcessPointClouds<pcl::PointXYZ> pointProcessor; //stack
     ProcessPointClouds<pcl::PointXYZ> *pointProcessor = new ProcessPointClouds<pcl::PointXYZ>(); //heap
     std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> segmentCloud =
-            pointProcessor->SegmentPlaneRansac(inputCloud, 100, 0.2);
+            pointProcessor->SegmentPlaneRANSAC(inputCloud, 100, 0.2);
 
     // Render point cloud segments in different colours
     if (render_obstacles) {

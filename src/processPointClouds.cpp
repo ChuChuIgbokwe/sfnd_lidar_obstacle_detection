@@ -107,8 +107,8 @@ ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr c
 
 template<typename PointT>
 std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr>
-ProcessPointClouds<PointT>::SegmentPlaneRansac(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations,
-                                         float distanceThreshold){
+ProcessPointClouds<PointT>::SegmentPlaneRANSAC(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations,
+                                               float distanceThreshold) {
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
     std::unordered_set<int> inliersResult;
