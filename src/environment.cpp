@@ -91,14 +91,18 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr &viewer) {
 }
 
 void cityBlock(pcl::visualization::PCLVisualizer::Ptr &viewer) {
-    // ----------------------------------------------------
-    // -----Open 3D viewer and display City Block     -----
-    // ----------------------------------------------------
-
     ProcessPointClouds<pcl::PointXYZI> *pointProcessorI = new ProcessPointClouds<pcl::PointXYZI>();
     pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloud = pointProcessorI->loadPcd(
             "../src/sensors/data/pcd/data_1/0000000000.pcd");
-    renderPointCloud(viewer, inputCloud, "inputCloud");
+    // renderPointCloud(viewer, inputCloud, "inputCloud");
+    // Experiment with the ? values and find what works best
+    pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud;
+    filterCloud = pointProcessorI->FilterCloud(inputCloud, 0.2,
+                                               Eigen::Vector4f(-30, -5, -2, 1),
+                                               Eigen::Vector4f(30, 7, .4, 1));
+
+
+    renderPointCloud(viewer, filterCloud, "filterCloud");
 }
 
 //setAngle: SWITCH CAMERA ANGLE {XY, TopDown, Side, FPS}
