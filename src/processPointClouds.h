@@ -18,6 +18,7 @@
 #include <ctime>
 #include <chrono>
 #include "render/box.h"
+#include <boost/filesystem.hpp>
 
 /**
  * @brief: Structure to represent node of kd tree
@@ -115,6 +116,8 @@ struct KdTree {
         return ids;
     }
 };
+
+class path;
 
 template<typename PointT>
 class ProcessPointClouds {
